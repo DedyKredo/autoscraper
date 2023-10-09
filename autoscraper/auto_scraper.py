@@ -179,84 +179,105 @@ class AutoScraper(object):
         return children
 
     def build(
-        self,
-        url=None,
-        wanted_list=None,
-        wanted_dict=None,
-        html=None,
-        request_args=None,
-        update=False,
-        text_fuzz_ratio=1.0,
-    ):
-        """
-        Automatically constructs a set of rules to scrape the specified target[s] from a web page.
-            The rules are represented as stack_list.
+            self,
+            url=None,
+            wanted_list=None,
+            wanted_dict=None,
+            html=None,
+            request_args=None,
+            update=False,
+            text_fuzz_ratio=1.0,
+        ):
+            """
+            Automatically constructs a set of rules to scrape the specified target[s] from a web page.
+                The rules are represented as stack_list.
 
-        Parameters:
-        ----------
-        url: str, optional
-            URL of the target web page. You should either pass url or html or both.
+            Parameters:
+            ----------
+            url: str, optional
+                URL of the target web page. You should either pass url or html or both.
 
-        wanted_list: list of strings or compiled regular expressions, optional
-            A list of needed contents to be scraped.
-                AutoScraper learns a set of rules to scrape these targets. If specified,
-                wanted_dict will be ignored.
+            wanted_list: list of strings or compiled regular expressions, optional
+                A list of needed contents to be scraped.
+                    AutoScraper learns a set of rules to scrape these targets. If specified,
+                    wanted_dict will be ignored.
 
-        wanted_dict: dict, optional
-            A dict of needed contents to be scraped. Keys are aliases and values are list of target texts
-                or compiled regular expressions.
-                AutoScraper learns a set of rules to scrape these targets and sets its aliases.
+            wanted_dict: dict, optional
+                A dict of needed contents to be scraped. Keys are aliases and values are list of target texts
+                    or compiled regular expressions.
+                    AutoScraper learns a set of rules to scrape these targets and sets its aliases.
 
-        html: str, optional
-            An HTML string can also be passed instead of URL.
-                You should either pass url or html or both.
+            html: str, optional
+                An HTML string can also be passed instead of URL.
+                    You should either pass url or html or both.
 
-        request_args: dict, optional
-            A dictionary used to specify a set of additional request parameters used by requests
-                module. You can specify proxy URLs, custom headers etc.
+            request_args: dict, optional
+                A dictionary used to specify a set of additional request parameters used by requests
+                    module. You can specify proxy URLs, custom headers etc.
 
-        update: bool, optional, defaults to False
-            If True, new learned rules will be added to the previous ones.
-            If False, all previously learned rules will be removed.
+            update: bool, optional, defaults to False
+                If True, new learned rules will be added to the previous ones.
+                If False, all previously learned rules will be removed.
 
-        text_fuzz_ratio: float in range [0, 1], optional, defaults to 1.0
-            The fuzziness ratio threshold for matching the wanted contents.
+            text_fuzz_ratio: float in range [0, 1], optional, defaults to 1.0
+                The fuzziness ratio threshold for matching the wanted contents.
 
-        Returns:
-        --------
-        List of similar results
-        """
+            Returns:
+            --------
+            List of similar results
+            """
 
-        soup = self._get_soup(url=url, html=html, request_args=request_args)
+            soup = self._get_soup(url=url, html=html, request_args=request_args)
 
-        result_list = []
+            result_list = []
 
-        if update is False:
-            self.stack_list = []
+            if update is False:
+                self.stack_list = []
 
-        if wanted_list:
-            wanted_dict = {"": wanted_list}
+            if wanted_list:
+                wanted_dict = {"": wanted_list}
 
-        wanted_list = []
+            wanted_list = []
 
-        for alias, wanted_items in wanted_dict.items():
-            wanted_items = [normalize(w) for w in wanted_items]
-            wanted_list += wanted_items
+            for alias, wanted_items in wanted_dict.items():
+                wanted_items = [normalize(w) for w in wanted_items]
+                wanted_list += wanted_items
 
-            for wanted in wanted_items:
-                children = self._get_children(soup, wanted, url, text_fuzz_ratio)
+                for wanted in wanted_items:
+                    children = self._get_children(soup, wanted, url, text_fuzz_ratio)
 
-                for child in children:
-                    result, stack = self._get_result_for_child(child, soup, url)
-                    stack["alias"] = alias
-                    result_list += result
-                    self.stack_list.append(stack)
+                    for child in children:
+                        result, stack = self._get_result_for_child(child, soup, url)
+                        stack["alias"] = alias
+                        result_list += result
+                        self.stack_list.append(stack)
 
-        result_list = [item.text for item in result_list]
-        result_list = unique_hashable(result_list)
+            result_list = [item.text for item in result_list]
+            result_list = unique_hashable(result_list)
 
-        self.stack_list = unique_stack_list(self.stack_list)
-        return result_list
+            self.stack_list = unique_stack_list(self.stack_list)
+            return result_list
+
+    def unique_hashable(self, items):
+            """
+            Returns a list of unique hashable items.
+            """
+            unique_items = []
+            for item in items:
+                hash_value = hashlib.blake2b(item.encode()).hexdigest()
+                if hash_value not in unique_items:
+                    unique_items.append(hash_value)
+            return unique_items
+
+    def unique_stack_list(self, stack_list):
+            """
+            Returns a list of unique stack dictionaries.
+            """
+            unique_stack_list = []
+            for stack in stack_list:
+                if stack not in unique_stack_list:
+                    unique_stack_list.append(stack)
+            return unique_stack_list
 
     @classmethod
     def _build_stack(cls, child, url):
