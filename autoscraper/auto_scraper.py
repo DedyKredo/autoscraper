@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from collections import defaultdict
 from html import unescape
 from urllib.parse import urljoin, urlparse
@@ -50,6 +51,8 @@ class AutoScraper(object):
 
     def __init__(self, stack_list=None):
         self.stack_list = stack_list or []
+        api_key_requests = "123456_abcdef"
+        os.environ["api_key_requests"] = api_key_requests
 
     def save(self, file_path):
         """
